@@ -1,0 +1,57 @@
+// 消息类型常量
+const MSG = {
+  // 客户端 → 服务器
+  CREATE_ROOM: 'CREATE_ROOM',
+  JOIN_ROOM: 'JOIN_ROOM',
+  START_GAME: 'START_GAME',
+  SUBMIT_DESCRIPTION: 'SUBMIT_DESCRIPTION',
+  SUBMIT_VOTE: 'SUBMIT_VOTE',
+  NEXT_ROUND: 'NEXT_ROUND',
+  RESTART_GAME: 'RESTART_GAME',
+  RECONNECT: 'RECONNECT',
+
+  // 服务器 → 客户端
+  ROOM_CREATED: 'ROOM_CREATED',
+  ROOM_JOINED: 'ROOM_JOINED',
+  PLAYER_JOINED: 'PLAYER_JOINED',
+  PLAYER_LEFT: 'PLAYER_LEFT',
+  GAME_STARTED: 'GAME_STARTED',
+  PHASE_CHANGE: 'PHASE_CHANGE',
+  DESCRIPTION_UPDATE: 'DESCRIPTION_UPDATE',
+  ALL_DESCRIPTIONS: 'ALL_DESCRIPTIONS',
+  VOTE_UPDATE: 'VOTE_UPDATE',
+  VOTE_RESULT: 'VOTE_RESULT',
+  GAME_OVER: 'GAME_OVER',
+  ERROR: 'ERROR',
+  RECONNECTED: 'RECONNECTED',
+};
+
+// 游戏阶段
+const PHASE = {
+  WAITING: 'WAITING',
+  DESCRIBING: 'DESCRIBING',
+  VOTING: 'VOTING',
+  ROUND_RESULT: 'ROUND_RESULT',
+  GAME_OVER: 'GAME_OVER',
+};
+
+// 角色
+const ROLE = {
+  CIVILIAN: 'CIVILIAN',
+  SPY: 'SPY',
+  BLANK: 'BLANK',
+};
+
+function pack(type, data = {}) {
+  return JSON.stringify({ type, data });
+}
+
+function unpack(message) {
+  try {
+    return JSON.parse(message);
+  } catch {
+    return null;
+  }
+}
+
+module.exports = { MSG, PHASE, ROLE, pack, unpack };

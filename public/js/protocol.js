@@ -1,0 +1,57 @@
+// 前端消息协议（与服务端保持一致）
+const MSG = {
+  CREATE_ROOM: 'CREATE_ROOM',
+  JOIN_ROOM: 'JOIN_ROOM',
+  START_GAME: 'START_GAME',
+  SUBMIT_DESCRIPTION: 'SUBMIT_DESCRIPTION',
+  SUBMIT_VOTE: 'SUBMIT_VOTE',
+  NEXT_ROUND: 'NEXT_ROUND',
+  RESTART_GAME: 'RESTART_GAME',
+  RECONNECT: 'RECONNECT',
+
+  ROOM_CREATED: 'ROOM_CREATED',
+  ROOM_JOINED: 'ROOM_JOINED',
+  PLAYER_JOINED: 'PLAYER_JOINED',
+  PLAYER_LEFT: 'PLAYER_LEFT',
+  GAME_STARTED: 'GAME_STARTED',
+  PHASE_CHANGE: 'PHASE_CHANGE',
+  DESCRIPTION_UPDATE: 'DESCRIPTION_UPDATE',
+  ALL_DESCRIPTIONS: 'ALL_DESCRIPTIONS',
+  VOTE_UPDATE: 'VOTE_UPDATE',
+  VOTE_RESULT: 'VOTE_RESULT',
+  GAME_OVER: 'GAME_OVER',
+  ERROR: 'ERROR',
+  RECONNECTED: 'RECONNECTED',
+};
+
+const PHASE = {
+  WAITING: 'WAITING',
+  DESCRIBING: 'DESCRIBING',
+  VOTING: 'VOTING',
+  ROUND_RESULT: 'ROUND_RESULT',
+  GAME_OVER: 'GAME_OVER',
+};
+
+const ROLE = {
+  CIVILIAN: 'CIVILIAN',
+  SPY: 'SPY',
+  BLANK: 'BLANK',
+};
+
+const ROLE_NAME = {
+  CIVILIAN: '平民',
+  SPY: '卧底',
+  BLANK: '白板',
+};
+
+function pack(type, data = {}) {
+  return JSON.stringify({ type, data });
+}
+
+function unpack(message) {
+  try {
+    return JSON.parse(message);
+  } catch {
+    return null;
+  }
+}

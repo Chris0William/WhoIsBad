@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>spy-editor - Visual Studio Code</title>
+  <link rel="stylesheet" href="css/editor.css">
+</head>
+<body>
+  <div id="app" class="vscode-container">
+    <!-- 标题栏 -->
+    <div class="titlebar">
+      <div class="titlebar-left">
+        <span class="titlebar-icon">≡</span>
+      </div>
+      <div class="titlebar-center">spy-editor - Visual Studio Code</div>
+      <div class="titlebar-right">
+        <span class="titlebar-btn">─</span>
+        <span class="titlebar-btn">□</span>
+        <span class="titlebar-btn titlebar-close">✕</span>
+      </div>
+    </div>
+
+    <!-- 标签栏 -->
+    <div class="tabs-bar">
+      <div class="tab active" id="tab-main">
+        <span class="tab-icon">JS</span>
+        <span class="tab-name" id="tab-name">welcome.js</span>
+        <span class="tab-close">×</span>
+      </div>
+      <button class="mobile-history-btn" id="mobile-history-btn">📋 历史</button>
+    </div>
+
+    <!-- 移动端面板遮罩 -->
+    <div class="panel-overlay" id="panel-overlay"></div>
+
+    <!-- 主体 -->
+    <div class="main-body">
+      <!-- 侧边栏 -->
+      <div class="sidebar" id="sidebar">
+        <div class="sidebar-header">资源管理器</div>
+        <div class="sidebar-section">
+          <div class="sidebar-title" id="sidebar-title">▸ 工作区</div>
+          <div class="sidebar-content" id="player-list">
+            <!-- 玩家列表 -->
+          </div>
+        </div>
+      </div>
+
+      <!-- 编辑器 + 终端 -->
+      <div class="editor-panel">
+        <!-- 编辑器区域 -->
+        <div class="editor-area" id="editor-area">
+          <div class="editor-content" id="editor-content">
+            <!-- 代码行 -->
+          </div>
+        </div>
+
+        <!-- 终端拖拽手柄 -->
+        <div class="resize-handle" id="terminal-resize"></div>
+
+        <!-- 终端区域 -->
+        <div class="terminal-area" id="terminal-area">
+          <div class="terminal-header">
+            <span class="terminal-tab active">终端</span>
+          </div>
+          <div class="terminal-content" id="terminal-content">
+            <!-- 终端内容 -->
+          </div>
+          <div class="terminal-input-line" id="terminal-input-line">
+            <span class="terminal-prompt">❯</span>
+            <input type="text" id="terminal-input" class="terminal-input" autocomplete="off" spellcheck="false">
+          </div>
+        </div>
+      </div>
+
+      <!-- 历史记录面板（右侧） -->
+      <div class="history-panel" id="history-panel">
+        <div class="history-header">历史记录</div>
+        <div class="history-content" id="history-content">
+          <!-- 动态生成 -->
+        </div>
+      </div>
+    </div>
+
+    <!-- 状态栏 -->
+    <div class="statusbar">
+      <div class="statusbar-left">
+        <span class="status-item" id="status-connection">⚡ 未连接</span>
+        <span class="status-item" id="status-room"></span>
+      </div>
+      <div class="statusbar-right">
+        <span class="status-item" id="status-phase"></span>
+        <span class="status-item" id="status-round"></span>
+        <span class="status-item">UTF-8</span>
+        <span class="status-item">JavaScript</span>
+      </div>
+    </div>
+  </div>
+
+  <script src="js/protocol.js"></script>
+  <script src="js/ui-lobby.js"></script>
+  <script src="js/ui-game.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
