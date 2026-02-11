@@ -38,6 +38,10 @@ const Game = {
 
     tabName.textContent = `game_${App.roomCode}.js`;
 
+    // 隐藏复制链接按钮
+    const copyBtn = document.getElementById('copy-link-btn');
+    if (copyBtn) copyBtn.style.display = 'none';
+
     editor.innerHTML = '';
     this.lineCount = 0;
 
@@ -124,6 +128,11 @@ const Game = {
           Lobby.addTerminalLine(terminal, `等待 ${this.currentSpeaker.name} 发言...`, '');
           this.showTerminalInput(false);
         }
+
+        // 房主显示强制推进按钮
+        if (App.isHost) {
+          this.addForceNextButton(terminal, '> 结束发言，进入投票');
+        }
         break;
       }
 
@@ -159,6 +168,11 @@ const Game = {
         const voteCandidates = data.voteablePlayers || data.alivePlayers;
         this.showVoteOptions(voteCandidates);
         this.showTerminalInput(false);
+
+        // 房主显示强制结束投票按钮
+        if (App.isHost) {
+          this.addForceNextButton(terminal, '> 结束投票');
+        }
         this.updateHistoryPanel();
         break;
       }
@@ -169,10 +183,11 @@ const Game = {
       case PHASE.WAITING:
         this.reset();
         document.getElementById('history-panel').classList.remove('visible');
+        if (data.settings) App.settings = data.settings;
         Lobby.showWaitingRoom({
           roomCode: App.roomCode,
           players: data.players,
-          settings: App.settings,
+          settings: data.settings || App.settings,
         });
         break;
     }
@@ -423,6 +438,24 @@ const Game = {
     });
 
     terminal.appendChild(options);
+  },
+
+  // 房主强制推进按钮
+  addForceNextButton(terminal, text) {
+    const wrapper = document.createElement('div');
+    wrapper.className = 'terminal-options force-next-options';
+    wrapper.style.marginTop = '8px';
+    const btn = document.createElement('button');
+    btn.className = 'terminal-option-btn';
+    btn.style.color = 'var(--text-warning, #cca700)';
+    btn.textContent = text;
+    btn.onclick = () => {
+      App.send(MSG.FORCE_NEXT_PHASE);
+      btn.disabled = true;
+      btn.textContent = text + ' (已发送)';
+    };
+    wrapper.appendChild(btn);
+    terminal.appendChild(wrapper);
   },
 
   // 显示/隐藏终端输入

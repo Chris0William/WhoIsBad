@@ -71,28 +71,52 @@ class RoomManager {
           if (result.error) ws.send(pack(MSG.ERROR, { message: result.error }));
         });
         break;
+      case MSG.UPDATE_SETTINGS:
+        this.handleInRoom(ws, room => {
+          if (!this.isHost(ws, room)) return;
+          const result = room.updateSettings(data);
+          if (result.error) ws.send(pack(MSG.ERROR, { message: result.error }));
+        });
+        break;
+      case MSG.FORCE_NEXT_PHASE:
+        this.handleInRoom(ws, room => {
+          if (!this.isHost(ws, room)) return;
+          const result = room.forceNextPhase();
+          if (result.error) ws.send(pack(MSG.ERROR, { message: result.error }));
+        });
+        break;
+      case MSG.LEAVE_ROOM:
+        this.handleLeaveRoom(ws);
+        break;
       default:
         ws.send(pack(MSG.ERROR, { message: '未知消息类型' }));
     }
   }
 
   handleCreateRoom(ws, data) {
-    const { playerName, maxPlayers, spyCount, blankCount, difficulty } = data;
+    const { playerName, roomCode: customCode } = data;
     if (!playerName || !playerName.trim()) {
       ws.send(pack(MSG.ERROR, { message: '请输入你的名字' }));
       return;
     }
 
-    const validDifficulties = ['easy', 'normal', 'hard'];
-    const diff = validDifficulties.includes(difficulty) ? difficulty : 'normal';
+    // 支持自定义房间号
+    let roomCode;
+    if (customCode && customCode.trim()) {
+      roomCode = customCode.trim().toUpperCase();
+      if (!/^[A-Z0-9]{1,6}$/.test(roomCode)) {
+        ws.send(pack(MSG.ERROR, { message: '房间号只能包含字母和数字，最多6位' }));
+        return;
+      }
+      if (this.rooms.has(roomCode)) {
+        ws.send(pack(MSG.ERROR, { message: '该房间号已被占用' }));
+        return;
+      }
+    } else {
+      roomCode = this.generateRoomCode();
+    }
 
-    const roomCode = this.generateRoomCode();
-    const room = new GameRoom(roomCode, ws, playerName.trim(), {
-      maxPlayers: Math.min(12, Math.max(4, maxPlayers || 6)),
-      spyCount: Math.max(1, spyCount || 1),
-      blankCount: Math.max(0, blankCount || 0),
-      difficulty: diff,
-    });
+    const room = new GameRoom(roomCode, ws, playerName.trim());
 
     this.rooms.set(roomCode, room);
 
@@ -194,6 +218,23 @@ class RoomManager {
       players: room.getPlayersInfo(),
       reconnected: true,
     }, result.player.id);
+  }
+
+  handleLeaveRoom(ws) {
+    if (!ws._roomCode) return;
+    const roomCode = ws._roomCode;
+    const room = this.rooms.get(roomCode);
+    if (!room) return;
+
+    room.removePlayer(ws._playerId);
+    ws._roomCode = null;
+    ws._playerId = null;
+
+    // 如果房间没人了，立即销毁
+    if (room.players.length === 0) {
+      this.rooms.delete(roomCode);
+      this.cancelRoomDestroy(roomCode);
+    }
   }
 
   handleDisconnect(ws) {

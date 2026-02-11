@@ -70,7 +70,19 @@ const App = {
     this.bindTerminalInput();
     this.initTerminalResize();
     this.initMobilePanels();
-    Lobby.show();
+    this.initMobileKeyboardFix();
+
+    // 检测 URL 中的 ?room=XXX 参数，自动跳转加入表单
+    const params = new URLSearchParams(location.search);
+    const roomParam = params.get('room');
+    if (roomParam) {
+      // 清除 URL 参数，避免刷新后重复触发
+      history.replaceState(null, '', location.pathname);
+      Lobby.show();
+      Lobby.showJoinForm(roomParam.toUpperCase());
+    } else {
+      Lobby.show();
+    }
   },
 
   // 保存会话信息到sessionStorage
@@ -138,6 +150,16 @@ const App = {
     if (this.ws && this.ws.readyState === WebSocket.OPEN) {
       this.ws.send(pack(type, data));
     }
+  },
+
+  leaveRoom() {
+    this.send(MSG.LEAVE_ROOM);
+    this.clearSession();
+    this.playerId = null;
+    this.roomCode = null;
+    this.isHost = false;
+    this.state = 'lobby';
+    Lobby.show();
   },
 
   handleMessage(type, data) {
@@ -224,6 +246,10 @@ const App = {
         Game.onGameOver(data);
         this.state = 'gameover';
         this.saveSession();
+        break;
+
+      case MSG.SETTINGS_UPDATED:
+        Lobby.onSettingsUpdated(data.settings);
         break;
 
       case MSG.ERROR:
@@ -367,6 +393,32 @@ const App = {
 
     // 点击遮罩关闭
     overlay.addEventListener('click', closeAll);
+  },
+
+  // 修复iOS Safari键盘收起后页面偏移，顶部按钮点不到的问题
+  initMobileKeyboardFix() {
+    if (!/iPhone|iPad|iPod/.test(navigator.userAgent)) return;
+
+    // 输入框失焦时强制滚回顶部
+    document.addEventListener('focusout', (e) => {
+      if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') {
+        setTimeout(() => {
+          window.scrollTo(0, 0);
+          document.body.scrollTop = 0;
+          document.documentElement.scrollTop = 0;
+        }, 100);
+      }
+    });
+
+    // 监听 visualViewport resize（键盘弹出/收起）
+    if (window.visualViewport) {
+      window.visualViewport.addEventListener('resize', () => {
+        // 键盘收起时 viewport 高度恢复，强制滚回
+        setTimeout(() => {
+          window.scrollTo(0, 0);
+        }, 50);
+      });
+    }
   },
 
   bindTerminalInput() {

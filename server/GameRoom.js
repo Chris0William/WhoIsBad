@@ -4,13 +4,13 @@ const { getRandomPair } = require('./words');
 let nextPlayerId = 1;
 
 class GameRoom {
-  constructor(roomCode, hostWs, hostName, settings) {
+  constructor(roomCode, hostWs, hostName) {
     this.roomCode = roomCode;
     this.settings = {
-      maxPlayers: settings.maxPlayers || 6,
-      spyCount: settings.spyCount || 1,
-      blankCount: settings.blankCount || 0,
-      difficulty: settings.difficulty || 'normal',
+      maxPlayers: 6,
+      spyCount: 1,
+      blankCount: 0,
+      difficulty: 'normal',
     };
     this.phase = PHASE.WAITING;
     this.round = 0;
@@ -109,6 +109,27 @@ class GameRoom {
     return player;
   }
 
+  updateSettings(data) {
+    if (this.phase !== PHASE.WAITING) return { error: '游戏已开始，无法修改设置' };
+
+    const validDifficulties = ['easy', 'normal', 'hard'];
+    if (data.maxPlayers !== undefined) {
+      this.settings.maxPlayers = Math.min(12, Math.max(4, parseInt(data.maxPlayers) || 6));
+    }
+    if (data.spyCount !== undefined) {
+      this.settings.spyCount = Math.max(1, parseInt(data.spyCount) || 1);
+    }
+    if (data.blankCount !== undefined) {
+      this.settings.blankCount = Math.max(0, parseInt(data.blankCount) || 0);
+    }
+    if (data.difficulty !== undefined) {
+      this.settings.difficulty = validDifficulties.includes(data.difficulty) ? data.difficulty : 'normal';
+    }
+
+    this.broadcast(MSG.SETTINGS_UPDATED, { settings: this.settings });
+    return { ok: true };
+  }
+
   getPlayersInfo() {
     return this.players.map(p => ({
       id: p.id,
@@ -121,6 +142,10 @@ class GameRoom {
 
   getAlivePlayers() {
     return this.players.filter(p => p.alive);
+  }
+
+  getConnectedAlivePlayers() {
+    return this.players.filter(p => p.alive && p.ws !== null);
   }
 
   broadcast(type, data, excludeId = null) {
@@ -207,8 +232,8 @@ class GameRoom {
       this.shuffle(ids);
       this.speakingOrder = ids;
     } else {
-      // 正常轮次：所有存活玩家
-      const alive = this.getAlivePlayers();
+      // 正常轮次：所有在线存活玩家
+      const alive = this.getConnectedAlivePlayers();
       const ids = alive.map(p => p.id);
       this.shuffle(ids);
       if (Math.random() < 0.5) ids.reverse();
@@ -255,7 +280,6 @@ class GameRoom {
     this.currentSpeakerIndex++;
     this.skipInvalidSpeakers();
 
-    const alive = this.getAlivePlayers();
     const isLast = this.currentSpeakerIndex >= this.speakingOrder.length;
 
     let nextSpeaker = null;
@@ -271,7 +295,7 @@ class GameRoom {
       playerName: player.name,
       text: text,
       submitted: this.descriptions.size,
-      total: alive.length,
+      total: this.getConnectedAlivePlayers().length,
       nextSpeaker: nextSpeaker,
       isLast: isLast,
       round: this.round,
@@ -298,7 +322,7 @@ class GameRoom {
     this.phase = PHASE.VOTING;
 
     const isTiebreak = this.tiebreakPlayerIds !== null;
-    const alivePlayers = this.getAlivePlayers().map(p => ({ id: p.id, name: p.name }));
+    const alivePlayers = this.getConnectedAlivePlayers().map(p => ({ id: p.id, name: p.name }));
 
     // 加赛时只能投票平票的玩家
     let voteablePlayers;
@@ -333,13 +357,13 @@ class GameRoom {
 
     this.votes.set(voterId, targetId);
 
-    const alive = this.getAlivePlayers();
+    const connectedAlive = this.getConnectedAlivePlayers();
     this.broadcast(MSG.VOTE_UPDATE, {
       submitted: this.votes.size,
-      total: alive.length,
+      total: connectedAlive.length,
     });
 
-    if (this.votes.size >= alive.length) {
+    if (this.votes.size >= connectedAlive.length) {
       this.resolveVotes();
     }
 
@@ -468,6 +492,21 @@ class GameRoom {
     return { ok: true };
   }
 
+  forceNextPhase() {
+    if (this.phase === PHASE.DESCRIBING) {
+      this.startVotingPhase();
+      return { ok: true };
+    }
+    if (this.phase === PHASE.VOTING) {
+      if (this.votes.size === 0) {
+        return { error: '至少需要一人投票后才能结束' };
+      }
+      this.resolveVotes();
+      return { ok: true };
+    }
+    return { error: '当前阶段无法强制推进' };
+  }
+
   restartGame() {
     this.phase = PHASE.WAITING;
     this.round = 0;
@@ -487,6 +526,7 @@ class GameRoom {
     this.broadcast(MSG.PHASE_CHANGE, {
       phase: PHASE.WAITING,
       players: this.getPlayersInfo(),
+      settings: this.settings,
     });
     return { ok: true };
   }
@@ -505,13 +545,13 @@ class GameRoom {
           skipped: true,
           nextSpeaker: { id: nextPlayer.id, name: nextPlayer.name },
           submitted: this.descriptions.size,
-          total: this.getAlivePlayers().filter(p => p.ws).length,
+          total: this.getConnectedAlivePlayers().length,
           round: this.round,
         });
       }
     } else if (this.phase === PHASE.VOTING) {
-      const alive = this.getAlivePlayers().filter(p => p.ws !== null);
-      const allVoted = alive.every(p => this.votes.has(p.id));
+      const connectedAlive = this.getConnectedAlivePlayers();
+      const allVoted = connectedAlive.every(p => this.votes.has(p.id));
       if (allVoted) this.resolveVotes();
     }
   }
